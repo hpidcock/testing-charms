@@ -1,0 +1,19 @@
+name: pgweb
+summary: pgweb
+maintainers: ["Harry Pidcock <harry.pidcock@canonical.com>"]
+description: pgweb
+platforms:
+  - kubernetes
+architectures:
+  - amd64
+systems:
+  - os: ubuntu
+    channel: 20.04/stable
+containers:
+  pgweb:
+    systems:
+      - os: ubuntu
+        channel: 20.04/stable
+provides:
+  db:
+    interface: roach

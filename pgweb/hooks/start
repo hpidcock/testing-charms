@@ -1,0 +1,11 @@
+#!/bin/bash
+set -v
+juju-log -l WARN "Running start hook script"
+
+mkdir -p /run/
+kill -9 $(cat /run/pgweb.pid)
+nohup /usr/local/bin/pgweb_linux_amd64 --bind=0.0.0.0 --listen=8080 > /run/pgweb.log 2>&1 < /dev/null &
+echo $! > /run/pgweb.pid
+
+status-set active "pgweb running"
+exit 0
