@@ -1,19 +1,23 @@
+# Copyright 2020 Harry Pidcock
+# See LICENSE file for licensing details.
 name: pgweb
-summary: pgweb
+summary: pgweb operator
 maintainers: ["Harry Pidcock <harry.pidcock@canonical.com>"]
-description: pgweb
+description: pgweb operator
+min-juju-version: 2.9.0 # k8s embedded operator
 platforms:
   - kubernetes
-architectures:
-  - amd64
 systems:
   - os: ubuntu
     channel: 20.04/stable
 containers:
   pgweb:
     systems:
-      - os: ubuntu
-        channel: 20.04/stable
-provides:
+      - resource: pgweb-image
+resources:
+  pgweb-image:
+    type: oci-image
+    description: OCI image used for pgweb
+requires:
   db:
-    interface: roach
+    interface: pgsql

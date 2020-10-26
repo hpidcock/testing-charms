@@ -1,11 +1,12 @@
+# Copyright 2020 Harry Pidcock
+# See LICENSE file for licensing details.
 name: cockroachdb
-summary: cockroachdb
+summary: cockroachdb operator
 maintainers: ["Harry Pidcock <harry.pidcock@canonical.com>"]
-description: cockroachdb
+description: cockroachdb operator
+min-juju-version: 2.9.0 # k8s embedded operator
 platforms:
   - kubernetes
-architectures:
-  - amd64
 systems:
   - os: ubuntu
     channel: 20.04/stable
@@ -16,13 +17,16 @@ containers:
     mounts:
       - storage: database
         location: /cockroach/cockroach-data
+resources:
+  cockroachdb-image:
+    type: oci-image
+    description: OCI image used for cockroachdb
 storage:
   database:
     type: filesystem
 provides:
   db:
-    interface: roach
-resources:
-  cockroachdb-image:
-    type: oci-image
-    description: OCI image used for cockroachdb
+    interface: pgsql
+peer:
+  cluster:
+    interface: roach-cluster
