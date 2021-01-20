@@ -1,0 +1,26 @@
+# Copyright 2020 Harry Pidcock
+# See LICENSE file for licensing details.
+name: pebbletest
+summary: pebble test operator
+maintainers: ["Harry Pidcock <harry.pidcock@canonical.com>"]
+description: pebble test operator
+min-juju-version: 2.9.0 # k8s embedded operator
+platforms:
+  - kubernetes
+systems:
+  - os: ubuntu
+    channel: 20.04/stable
+containers:
+  test0:
+    systems:
+      - resource: test-image
+  test1:
+    systems:
+      - resource: test-image
+  test3:
+    systems:
+      - resource: test-image
+resources:
+  test-image:
+    type: oci-image
+    description: OCI image used for test containers

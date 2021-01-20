@@ -1,0 +1,4 @@
+#!/bin/bash
+juju-log -l WARN "Running test2-workload-ready hook script"
+status-set maintenance "test2-workload-ready"
+exit 0
