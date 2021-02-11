@@ -4,8 +4,6 @@
 
 import logging
 import os
-import subprocess
-import json
 
 import ops.lib
 
@@ -50,6 +48,7 @@ class PGWebCharm(CharmBase):
         super().__init__(*args)
         self.framework.observe(self.on.start, self._start)
         self.framework.observe(self.on.upgrade_charm, self._start)
+        self.framework.observe(self.on.pgweb_workload_ready, self._pgweb_ready)
         self.state.set_default(db_conn_str=None, db_uri=None, db_ro_uris=[])
         self.db = pgsql.PostgreSQLClient(self, 'db')
         self.framework.observe(self.db.on.database_relation_joined, self._on_database_relation_joined)
@@ -93,36 +92,39 @@ class PGWebCharm(CharmBase):
 
         self.state.db_ro_uris = [c.uri for c in event.standbys]
 
-
     def _start(self, event):
+        logger.error("start hook")
+        self.unit.status = WaitingStatus("cockroachdb pending")
+
+    def _stop(self, event):
+        logger.error("stop hook")
+        self.unit.get_container("pgweb").stop("pgweb")
+        self.unit.status = WaitingStatus("cockroachdb stopping")
+
+    def _pgweb_ready(self, event):
         if not self.state.db_uri:
             self.unit.status = WaitingStatus('Waiting for database relation')
             event.defer()
             return
 
-        if not self.unit.is_leader():
-            self.unit.status = ActiveStatus()
-            return
+        logger.error("pgweb workload ready hook")
+        if not os.path.exists("/charm/containers/pgweb/pebble/layers"):
+            os.makedirs("/charm/containers/pgweb/pebble/layers")
+        with open("/charm/containers/pgweb/pebble/layers/0.yaml", "w") as f:
+            f.write("""
+summary: pgweb layer
+description: pgweb layer
+services:
+    pgweb:
+        override: replace
+        summary: pgweb service
+        command: /usr/bin/pgweb --bind=0.0.0.0 --listen=8081
+        environment:
+            - DATABASE_URL: {}
+""".format(self.state.db_uri))
 
-        if self._is_running():
-            self.unit.status = ActiveStatus()
-            return
-
-        cmd = "pebble start --socket /charm/containers/pgweb/pebble.sock --env 'DATABASE_URL={}' -- /usr/bin/pgweb --bind=0.0.0.0 --listen=8081".format(self.state.db_uri)
-        logger.error(cmd)
-        os.system(cmd)
+        self.unit.get_container("pgweb").start("pgweb")
         self.unit.status = ActiveStatus("pgweb started")
-
-    def _stop(self, event):
-        os.system("pebble signal --socket /charm/containers/pgweb/pebble.sock")
-
-    def _is_running(self):
-        res = subprocess.run(["pebble", "status", "--socket", "/charm/containers/pgweb/pebble.sock"], capture_output=True, text=True)
-        logger.error(res.returncode)
-        logger.error(res.stdout)
-        s = json.loads(res.stdout)
-        return s["status"] == "running"
-
 
 
 

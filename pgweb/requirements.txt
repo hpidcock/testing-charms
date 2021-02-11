@@ -1,2 +1,2 @@
-ops
+git+git://github.com/hpidcock/operator.git@master#egg=ops
 ops-lib-pgsql

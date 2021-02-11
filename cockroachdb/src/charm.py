@@ -4,7 +4,7 @@
 
 import logging
 import os
-import subprocess
+import urllib
 import json
 
 from ops.charm import CharmBase
@@ -12,9 +12,9 @@ from ops.main import main
 from ops.framework import StoredState
 from ops.model import (
     ActiveStatus,
-    UnknownStatus,
     Relation,
     Binding,
+    WaitingStatus,
 )
 
 
@@ -30,38 +30,57 @@ class CockroachDBCharm(CharmBase):
         self.framework.observe(self.on.upgrade_charm, self._start)
         self.framework.observe(self.on.update_status, self._update_status)
         self.framework.observe(self.on.stop, self._stop)
+        self.framework.observe(self.on.cockroachdb_workload_ready, self._cockroachdb_ready)
 
         self.framework.observe(self.on["db"].relation_joined, self._on_joined)
         self.framework.observe(self.on["db"].relation_changed, self._on_changed)
         self.framework.observe(self.on["db"].relation_broken, self._on_broken)
 
     def _start(self, event):
-        if self._is_running():
-            return
-        os.system("pebble start --socket /charm/containers/cockroachdb/pebble.sock -- cockroach start-single-node --insecure --store=/cockroach/cockroach-data")
-        self.unit.status = ActiveStatus("cockroachdb started")
+        logger.error("start hook")
+        self.unit.status = WaitingStatus("cockroachdb pending")
 
     def _stop(self, event):
-        os.system("pebble signal --socket /charm/containers/cockroachdb/pebble.sock")
+        logger.error("stop hook")
+        self.unit.get_container("cockroachdb").stop("cockroachdb")
+        self.unit.status = WaitingStatus("cockroachdb stopping")
 
     def _update_status(self, event):
-        code = os.system("pebble exec --socket /charm/containers/cockroachdb/pebble.sock -- cockroach sql --insecure --execute 'SELECT 1'")
-        if code == 0:
-            self.unit.status = ActiveStatus("cockroachdb alive")
-        else:
-            self.unit.status = UnknownStatus("cockroachdb dead")
+        logger.error("update status hook")
 
     def _on_joined(self, event):
-        self._start(event) 
-
+        logger.error("relation joined hook")
         rel: Relation = event.relation
         remote = rel.data[rel.app]
+        if "database" not in remote:
+            event.defer()
+            return
         db = remote["database"]
-        os.system("pebble exec --socket /charm/containers/cockroachdb/pebble.sock -- cockroach sql --insecure --execute 'CREATE DATABASE {}'".format(db))
 
+        if not os.path.exists("/charm/containers/cockroachdb/pebble/layers"):
+            os.makedirs("/charm/containers/cockroachdb/pebble/layers")
+        with open("/charm/containers/cockroachdb/pebble/layers/1-{}.yaml".format(rel.app.name), "w") as f:
+            f.write("""
+summary: CockroachDB relation layer
+description: CockroachDB relation layer
+services:
+    sql-create-db-{}:
+        override: replace
+        summary: sql create database
+        after: 
+            - cockroachdb
+        command: cockroach sql --insecure --execute 'CREATE DATABASE IF NOT EXISTS {}'
+""".format(db, db))
+        try:
+            self.unit.get_container("cockroachdb").start("sql-create-db-{}".format(db))
+        except urllib.error.HTTPError as e:
+            logger.error(e)
+            obj = json.load(e)
+            logger.error(json.dumps(obj, sort_keys=True, indent=4))
         self._on_changed(event)
 
     def _on_changed(self, event):
+        logger.error("relation changed hook")
         rel: Relation = event.relation
         remote = rel.data[rel.app]
         db = remote["database"]
@@ -79,15 +98,24 @@ class CockroachDBCharm(CharmBase):
         local["standbys"] = ""
 
     def _on_broken(self, event):
-        logger.error("got relation_broken")
+        logger.error("relation broken hook")
 
-    def _is_running(self):
-        res = subprocess.run(["pebble", "status", "--socket", "/charm/containers/cockroachdb/pebble.sock"], capture_output=True, text=True)
-        logger.error(res.returncode)
-        logger.error(res.stdout)
-        s = json.loads(res.stdout)
-        return s["status"] == "running"
-
+    def _cockroachdb_ready(self, event):
+        logger.error("cockroachdb workload ready hook")
+        if not os.path.exists("/charm/containers/cockroachdb/pebble/layers"):
+            os.makedirs("/charm/containers/cockroachdb/pebble/layers")
+        with open("/charm/containers/cockroachdb/pebble/layers/0.yaml", "w") as f:
+            f.write("""
+summary: CockroachDB layer
+description: CockroachDB layer
+services:
+    cockroachdb:
+        override: replace
+        summary: cockroachdb service
+        command: cockroach start-single-node --insecure --store=/cockroach/cockroach-data
+""")
+        self.unit.get_container("cockroachdb").start("cockroachdb")
+        self.unit.status = ActiveStatus("cockroachdb started")
 
 
 if __name__ == "__main__":
