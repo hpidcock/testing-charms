@@ -30,7 +30,7 @@ class CockroachDBCharm(CharmBase):
         self.framework.observe(self.on.upgrade_charm, self._start)
         self.framework.observe(self.on.update_status, self._update_status)
         self.framework.observe(self.on.stop, self._stop)
-        self.framework.observe(self.on.cockroachdb_workload_ready, self._cockroachdb_ready)
+        self.framework.observe(self.on.cockroachdb_pebble_ready, self._cockroachdb_ready)
 
         self.framework.observe(self.on["db"].relation_joined, self._on_joined)
         self.framework.observe(self.on["db"].relation_changed, self._on_changed)
@@ -101,7 +101,7 @@ services:
         logger.error("relation broken hook")
 
     def _cockroachdb_ready(self, event):
-        logger.error("cockroachdb workload ready hook")
+        logger.error("cockroachdb pebble ready hook")
         if not os.path.exists("/charm/containers/cockroachdb/pebble/layers"):
             os.makedirs("/charm/containers/cockroachdb/pebble/layers")
         with open("/charm/containers/cockroachdb/pebble/layers/0.yaml", "w") as f:
@@ -114,7 +114,7 @@ services:
         summary: cockroachdb service
         command: cockroach start-single-node --insecure --store=/cockroach/cockroach-data
 """)
-        self.unit.get_container("cockroachdb").start("cockroachdb")
+        event.workload.start("cockroachdb")
         self.unit.status = ActiveStatus("cockroachdb started")
 
 

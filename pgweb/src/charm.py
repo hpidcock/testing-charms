@@ -48,7 +48,7 @@ class PGWebCharm(CharmBase):
         super().__init__(*args)
         self.framework.observe(self.on.start, self._start)
         self.framework.observe(self.on.upgrade_charm, self._start)
-        self.framework.observe(self.on.pgweb_workload_ready, self._pgweb_ready)
+        self.framework.observe(self.on.pgweb_pebble_ready, self._pgweb_ready)
         self.state.set_default(db_conn_str=None, db_uri=None, db_ro_uris=[])
         self.db = pgsql.PostgreSQLClient(self, 'db')
         self.framework.observe(self.db.on.database_relation_joined, self._on_database_relation_joined)
@@ -107,7 +107,7 @@ class PGWebCharm(CharmBase):
             event.defer()
             return
 
-        logger.error("pgweb workload ready hook")
+        logger.error("pgweb pebble ready hook")
         if not os.path.exists("/charm/containers/pgweb/pebble/layers"):
             os.makedirs("/charm/containers/pgweb/pebble/layers")
         with open("/charm/containers/pgweb/pebble/layers/0.yaml", "w") as f:
@@ -123,7 +123,7 @@ services:
             - DATABASE_URL: {}
 """.format(self.state.db_uri))
 
-        self.unit.get_container("pgweb").start("pgweb")
+        event.workload.start("pgweb")
         self.unit.status = ActiveStatus("pgweb started")
 
 

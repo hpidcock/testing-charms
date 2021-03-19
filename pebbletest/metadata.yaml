@@ -4,22 +4,16 @@ name: pebbletest
 summary: pebble test operator
 maintainers: ["Harry Pidcock <harry.pidcock@canonical.com>"]
 description: pebble test operator
-min-juju-version: 2.9.0 # k8s embedded operator
-platforms:
-  - kubernetes
-systems:
-  - os: ubuntu
+bases:
+  - name: ubuntu
     channel: 20.04/stable
 containers:
   test0:
-    systems:
-      - resource: test-image
+    resource: test-image
   test1:
-    systems:
-      - resource: test-image
+    resource: test-image
   test3:
-    systems:
-      - resource: test-image
+    resource: test-image
 resources:
   test-image:
     type: oci-image

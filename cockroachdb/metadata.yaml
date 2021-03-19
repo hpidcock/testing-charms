@@ -4,16 +4,12 @@ name: cockroachdb
 summary: cockroachdb operator
 maintainers: ["Harry Pidcock <harry.pidcock@canonical.com>"]
 description: cockroachdb operator
-min-juju-version: 2.9.0 # k8s embedded operator
-platforms:
-  - kubernetes
-systems:
-  - os: ubuntu
+bases:
+  - name: ubuntu
     channel: 20.04/stable
 containers:
   cockroachdb:
-    systems:
-      - resource: cockroachdb-image
+    resource: cockroachdb-image
     mounts:
       - storage: database
         location: /cockroach/cockroach-data
