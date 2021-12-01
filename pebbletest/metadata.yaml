@@ -4,17 +4,27 @@ name: pebbletest
 summary: pebble test operator
 maintainers: ["Harry Pidcock <harry.pidcock@canonical.com>"]
 description: pebble test operator
-bases:
-  - name: ubuntu
-    channel: 20.04/stable
 containers:
   test0:
     resource: test-image
+    mounts:
+      - storage: data
+        location: /data
   test1:
     resource: test-image
-  test3:
+    mounts:
+      - storage: data
+        location: /data
+  test2:
     resource: test-image
+    mounts:
+      - storage: data
+        location: /data
 resources:
   test-image:
     type: oci-image
     description: OCI image used for test containers
+storage:
+  data:
+    type: filesystem
+    location: /data

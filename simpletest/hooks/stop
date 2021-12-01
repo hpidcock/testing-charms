@@ -1,0 +1,4 @@
+#!/bin/bash
+juju-log -l WARN "Running stop hook script"
+status-set maintenance "Stopping thing"
+exit 0

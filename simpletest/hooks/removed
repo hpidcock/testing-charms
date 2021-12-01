@@ -1,0 +1,4 @@
+#!/bin/bash
+juju-log -l WARN "Running removed hook script"
+status-set maintenance "Removed thing"
+exit 0

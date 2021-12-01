@@ -1,0 +1,10 @@
+# Copyright 2020 Harry Pidcock
+# See LICENSE file for licensing details.
+name: simpletest 
+summary: simple test operator
+maintainers: ["Harry Pidcock <harry.pidcock@canonical.com>"]
+description: simple test operator
+storage:
+  data:
+    type: filesystem
+    location: /data

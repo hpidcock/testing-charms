@@ -1,0 +1,4 @@
+#!/bin/bash
+juju-log -l WARN "Running upgrade-charm script"
+status-set maintenance "Upgrading thing"
+exit 0

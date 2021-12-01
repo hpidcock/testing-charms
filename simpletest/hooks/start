@@ -1,0 +1,4 @@
+#!/bin/bash
+juju-log -l WARN "Running start hook script"
+status-set maintenance "Starting thing"
+exit 0

@@ -1,0 +1,4 @@
+#!/bin/bash
+juju-log -l WARN "Running data-storage-attached script"
+status-set maintenance "Storage attached for data $JUJU_STORAGE_ID $JUJU_STORAGE_KIND $JUJU_STORAGE_LOCATION"
+exit 0
